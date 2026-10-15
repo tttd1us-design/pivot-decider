@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>방향 전환 판정기 — 감정 vs 사업</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI','Malgun Gothic',sans-serif;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);min-height:100vh;color:#e0e0e0;padding:20px}
+.container{max-width:800px;margin:0 auto}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;color:#fff}
+.subtitle{text-align:center;color:#a0a0c0;margin-bottom:24px;font-size:.95rem}
+.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:20px;margin-bottom:16px;backdrop-filter:blur(10px)}
+.card h2{font-size:1.1rem;margin-bottom:12px;color:#7ec8e3}
+label{display:block;font-size:.85rem;color:#b0b0d0;margin-bottom:4px}
+input,textarea,select{width:100%;padding:10px 12px;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(0,0,0,.3);color:#e0e0e0;font-size:.95rem;margin-bottom:12px}
+textarea{min-height:80px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#7ec8e3}
+.btn{display:inline-block;padding:10px 24px;border:none;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(102,126,234,.4)}
+.btn-secondary{background:rgba(255,255,255,.1);color:#e0e0e0;border:1px solid rgba(255,255,255,.2)}
+.btn-danger{background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid rgba(231,76,60,.3)}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.check-item:last-child{border-bottom:none}
+.check-item input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:#7ec8e3;flex-shrink:0}
+.check-item label{margin:0;font-size:.9rem;cursor:pointer}
+.score-bar{display:flex;align-items:center;gap:12px;margin:8px 0}
+.score-bar .label{width:80px;font-size:.85rem;color:#b0b0d0}
+.score-bar .bar{flex:1;height:20px;background:rgba(0,0,0,.3);border-radius:10px;overflow:hidden}
+.score-bar .fill{height:100%;border-radius:10px;transition:width .5s}
+.score-bar .val{width:50px;text-align:right;font-weight:700;font-size:.9rem}
+.verdict{text-align:center;padding:24px;border-radius:12px;margin:16px 0;font-size:1.3rem;font-weight:700}
+.verdict-continue{background:rgba(46,204,113,.15);border:2px solid #2ecc71;color:#2ecc71}
+.verdict-hold{background:rgba(241,196,15,.15);border:2px solid #f1c40f;color:#f1c40f}
+.verdict-pivot{background:rgba(231,76,60,.15);border:2px solid #e74c3c;color:#e74c3c}
+.history-item{background:rgba(0,0,0,.2);border-radius:8px;padding:12px;margin-bottom:8px;font-size:.85rem}
+.history-item .date{color:#7ec8e3;font-size:.75rem}
+.history-item .result{font-weight:600;margin-top:4px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;margin-left:6px}
+.tag-continue{background:rgba(46,204,113,.2);color:#2ecc71}
+.tag-hold{background:rgba(241,196,15,.2);color:#f1c40f}
+.tag-pivot{background:rgba(231,76,60,.2);color:#e74c3c}
+.empty{text-align:center;color:#666;padding:20px;font-size:.9rem}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1;min-width:200px}
+@media(max-width:600px){.row>div{min-width:100%}h1{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🧭 방향 전환 판정기</h1>
+<p class="subtitle">감정이 아니라 사업 근거로 판단하라</p>
+
+<div class="card">
+<h2>📌 현재 사업 상황</h2>
+<div class="row">
+<div><label>현재 사업/제품명</label><input id="currentBiz" placeholder="예: 온라인 클래스 플랫폼"></div>
+<div><label>운영 기간 (개월)</label><input id="currentMonths" type="number" min="0" placeholder="예: 18"></div>
+</div>
+<label>현재 사업의 가장 큰 문제는?</label>
+<textarea id="currentProblem" placeholder="예: 매출이 6개월째 정체, 신규 유입 감소"></textarea>
+</div>
+
+<div class="card">
+<h2>💡 새 아이디어</h2>
+<div class="row">
+<div><label>새 아이디어/사업명</label><input id="newIdea" placeholder="예: AI 영상 편집 도구"></div>
+<div><label>예상 소요 기간 (개월)</label><input id="newMonths" type="number" min="0" placeholder="예: 6"></div>
+</div>
+<label>새 아이디어를 하려는 이유</label>
+<textarea id="newReason" placeholder="예: 기존 사업이 재미없고, 이 분야가 더 잘 할 수 있을 것 같아서"></textarea>
+</div>
+
+<div class="card">
+<h2>✅ 체크 질문 7개</h2>
+<p style="font-size:.8rem;color:#888;margin-bottom:12px">해당하면 체크하세요. 감정 점수와 사업 점수를 자동 계산합니다.</p>
+<div id="checklist"></div>
+</div>
+
+<div style="text-align:center;margin:16px 0">
+<button class="btn btn-primary" onclick="calculate()">⚖️ 판정하기</button>
+</div>
+
+<div id="result"></div>
+
+<div class="card">
+<h2>📜 과거 판정 기록</h2>
+<div id="history"></div>
+<div style="margin-top:12px;text-align:right">
+<button class="btn btn-danger btn-sm" onclick="clearHistory()">기록 전체 삭제</button>
+</div>
+</div>
+</div>
+
+<script>
+const CHECKS = [
+  {id:'c1', text:'지금 바꾸려는 이유가 감정적이다(지루함, 답답함, 새로움에 대한 갈망)', type:'emotion'},
+  {id:'c2', text:'현재 사업의 매출/성장이 명확한 한계에 도달했다', type:'business'},
+  {id:'c3', text:'새 아이디어의 시장 규모와 수요를 검증했다', type:'business'},
+  {id:'c4', text:'새 아이디어에 대한 전문성/인프라/네트워크가 있다', type:'business'},
+  {id:'c5', text:'현재 사업을 더 이상 개선할 방법이 없다고 확신한다', type:'business'},
+  {id:'c6', text:'새 아이디어를 시작할 자본/시간적 여유가 있다', type:'business'},
+  {id:'c7', text:'주변 사람들이 내 판단에 동의하는가?', type:'emotion'}
+];
+
+function renderChecklist(){
+  const el = document.getElementById('checklist');
+  el.innerHTML = CHECKS.map(c=>`
+    <div class="check-item">
+      <input type="checkbox" id="${c.id}" data-type="${c.type}">
+      <label for="${c.id}">${c.text}</label>
+    </div>
+  `).join('');
+}
+
+function calculate(){
+  let emotion=0, business=0;
+  CHECKS.forEach(c=>{
+    if(document.getElementById(c.id).checked){
+      if(c.type==='emotion') emotion++;
+      else business++;
+    }
+  });
+  const total = emotion + business;
+  const emotionPct = total>0 ? Math.round(emotion/total*100) : 0;
+  const businessPct = total>0 ? Math.round(business/total*100) : 0;
+
+  let verdict, verdictClass;
+  if(business >= 4 && emotion <= 2){
+    verdict='🔄 전환 권고'; verdictClass='verdict-pivot';
+  } else if(emotion >= 4 && business <= 2){
+    verdict='⏸️ 보류 권고'; verdictClass='verdict-hold';
+  } else {
+    verdict='▶️ 계속 진행 권고'; verdictClass='verdict-continue';
+  }
+
+  const resultEl = document.getElementById('result');
+  resultEl.innerHTML = `
+    <div class="card">
+      <h2>📊 점수 분석</h2>
+      <div class="score-bar">
+        <span class="label">감정 점수</span>
+        <div class="bar"><div class="fill" style="width:${emotionPct}%;background:linear-gradient(90deg,#e74c3c,#c0392b)"></div></div>
+        <span class="val" style="color:#e74c3c">${emotion}개</span>
+      </div>
+      <div class="score-bar">
+        <span class="label">사업 점수</span>
+        <div class="bar"><div class="fill" style="width:${businessPct}%;background:linear-gradient(90deg,#2ecc71,#27ae60)"></div></div>
+        <span class="val" style="color:#2ecc71">${business}개</span>
+      </div>
+    </div>
+    <div class="verdict ${verdictClass}">${verdict}</div>
+    <div class="card" style="font-size:.85rem;color:#b0b0d0">
+      <p>💡 <strong>판정 기준:</strong></p>
+      <ul style="margin:8px 0 0 20px;line-height:1.8">
+        <li><strong>전환 권고</strong>: 사업 점수 4개 이상 + 감정 점수 2개 이하</li>
+        <li><strong>보류 권고</strong>: 감정 점수 4개 이상 + 사업 점수 2개 이하</li>
+        <li><strong>계속 진행</strong>: 그 외 (판단 근거가 불충분)</li>
+      </ul>
+    </div>
+  `;
+
+  saveHistory({
+    date: new Date().toLocaleString('ko-KR'),
+    currentBiz: document.getElementById('currentBiz').value,
+    newIdea: document.getElementById('newIdea').value,
+    emotion, business, verdict
+  });
+  renderHistory();
+}
+
+function saveHistory(record){
+  let h = JSON.parse(localStorage.getItem('pivot_history')||'[]');
+  h.unshift(record);
+  if(h.length>50) h = h.slice(0,50);
+  localStorage.setItem('pivot_history', JSON.stringify(h));
+}
+
+function renderHistory(){
+  const h = JSON.parse(localStorage.getItem('pivot_history')||'[]');
+  const el = document.getElementById('history');
+  if(h.length===0){
+    el.innerHTML = '<div class="empty">아직 판정 기록이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = h.map(r=>{
+    const tagClass = r.verdict.includes('전환')?'tag-pivot':r.verdict.includes('보류')?'tag-hold':'tag-continue';
+    return `<div class="history-item">
+      <div class="date">${r.date}</div>
+      <div>${r.currentBiz||'(미입력)'} → ${r.newIdea||'(미입력)'}</div>
+      <div class="result">감정 ${r.emotion} / 사업 ${r.business} <span class="tag ${tagClass}">${r.verdict}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function clearHistory(){
+  if(confirm('모든 판정 기록을 삭제하시겠습니까?')){
+    localStorage.removeItem('pivot_history');
+    renderHistory();
+  }
+}
+
+renderChecklist();
+renderHistory();
+</script>
+</body>
+</html>
